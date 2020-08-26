@@ -7,16 +7,23 @@ namespace MachineLearning
 {
     class Player
     {
-        public Point Loc { get; set; }
-        public double Rot { get; set; }
-        public double ForwardVel { get; set; }
-        public double TurnVel { get; set; }
+        private Point startLoc;
+
+        public Point PrevLoc { get; private set; }
+        public Point Loc { get; private set; }
+        public double Rot { get; private set; }
+        public double ForwardVel { get; private set; }
+        public double TurnVel { get; private set; }
         public Color Color { get; set; }
+        public bool Active { get; private set; }
+        public NeuralNet Net { get; set; }
 
         private int r = 50;
 
         private double[] sensors;
         private int sensorLength = 300;
+        private int checkpoint = 0;
+
         public Player (int x, int y)
         {
             Loc = new Point(x, y);
@@ -24,35 +31,75 @@ namespace MachineLearning
             ForwardVel = 0;
             TurnVel = 0;
             sensors = new double[5];
+            Net = new NeuralNet(new int[] { sensors.Length, 16, 16, 4 });
+            startLoc = Loc;
+            PrevLoc = Loc;
         }
 
         public void Paint(Graphics g)
         {
-            for (int i = 0; i < sensors.Length; i++)
+            if (Active)
             {
-                g.DrawLine(new Pen(Brushes.Red, 10), Loc, ProjectPolar(Loc, Rot - 90 + i * 180 / (sensors.Length - 1), sensors[i] * sensorLength));
-            }
+                for (int i = 0; i < sensors.Length; i++)
+                {
+                    g.DrawLine(new Pen(Brushes.Red, 10), Loc, ProjectPolar(Loc, Rot - 90 + i * 180 / (sensors.Length - 1), sensors[i] * sensorLength));
+                }
 
-            g.TranslateTransform(Loc.X, Loc.Y);
-            g.RotateTransform((float)Rot);
-            g.FillRectangle(new SolidBrush(Color), -r / 2, -r / 2, r, r);
-            g.ResetTransform();
+                g.TranslateTransform(Loc.X, Loc.Y);
+                g.RotateTransform((float)Rot);
+                g.FillRectangle(new SolidBrush(Color), -r / 2, -r / 2, r, r);
+                g.ResetTransform();
+            }
+        }
+
+        internal void Frame(Level level)
+        {
+            if (Active)
+            {
+                Sense(level.Walls);
+
+                Net.FeedForward(sensors);
+                Point prevLoc = Loc;
+                Input(Net.Output[0] > 0.5, Net.Output[1] > 0.5, Net.Output[2] > 0.5, Net.Output[3] > 0.5);
+                UpdateLoc();
+                Net.Fitness += ForwardVel / 10;
+
+                if (CheckCollisions(level.Walls).Item1 || Math.Round(ForwardVel, 1) == 0)
+                {
+                    Active = false;
+                }
+                var checkpointCollision = CheckCollisions(level.Checkpoints);
+                //Color = checkpoint ? Color.ForestGreen : Color.Coral;
+                Color = Color.Aquamarine;
+
+                if (checkpointCollision.Item1 && checkpointCollision.Item2 == checkpoint)
+                {
+                    checkpoint++;
+                    if (checkpoint == level.Checkpoints.Count)
+                    {
+                        checkpoint = 0;
+                    }
+                    Net.Fitness += 100;
+                }
+            }
         }
 
         public void UpdateLoc()
         {
+            PrevLoc = Loc;
             Rot += TurnVel;
             TurnVel *= 0.9;
             Loc = ProjectPolar(Loc, Rot, ForwardVel);
             ForwardVel *= 0.9;
         }
 
-        public void Reset(int x, int y, double dir)
+        public void Reset()
         {
-            Loc = new Point(x, y);
-            Rot = dir;
+            Loc = startLoc;
+            Rot = 0;
             ForwardVel = 0;
             TurnVel = 0;
+            Active = true;
         }
 
         public void Sense(List<Line> walls)
@@ -78,16 +125,17 @@ namespace MachineLearning
             return Math.Sqrt((a.X - b.X) * (a.X - b.X) + (a.Y - b.Y) * (a.Y - b.Y));
         }
 
-        public bool CheckCollisions(List<Line> lines)
+        public Tuple<bool, int> CheckCollisions(List<Line> lines)
         {
-            foreach (Line l in lines)
+            for (int i = 0; i < lines.Count; i++)
             {
+                Line l = lines[i];
                 if (Line.IntersectsRect(l, new Rectangle(new Point(Loc.X - r/2, Loc.Y - r/2), new Size(r, r))))
                 {
-                    return true;
+                    return Tuple.Create(true, i);
                 }
             }
-            return false;
+            return Tuple.Create(false, -1);
         }
 
         public void Input(bool up, bool down, bool left, bool right)
