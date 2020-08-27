@@ -37,21 +37,24 @@
             this.ClearCourseButton = new System.Windows.Forms.Button();
             this.ClearCheckpointsButton = new System.Windows.Forms.Button();
             this.ResetButton = new System.Windows.Forms.Button();
+            this.PlayButton = new System.Windows.Forms.Button();
+            this.MutateNumberBox = new System.Windows.Forms.NumericUpDown();
+            ((System.ComponentModel.ISupportInitialize)(this.MutateNumberBox)).BeginInit();
             this.SuspendLayout();
             // 
             // SaveButton
             // 
             this.SaveButton.Location = new System.Drawing.Point(184, 12);
             this.SaveButton.Name = "SaveButton";
-            this.SaveButton.Size = new System.Drawing.Size(112, 34);
+            this.SaveButton.Size = new System.Drawing.Size(125, 34);
             this.SaveButton.TabIndex = 1;
-            this.SaveButton.Text = "Save Track";
+            this.SaveButton.Text = "Save Course";
             this.SaveButton.UseVisualStyleBackColor = true;
             this.SaveButton.Click += new System.EventHandler(this.SaveTrackButton_Click);
             // 
             // SaveNetButton
             // 
-            this.SaveNetButton.Location = new System.Drawing.Point(302, 12);
+            this.SaveNetButton.Location = new System.Drawing.Point(315, 12);
             this.SaveNetButton.Name = "SaveNetButton";
             this.SaveNetButton.Size = new System.Drawing.Size(149, 34);
             this.SaveNetButton.TabIndex = 2;
@@ -61,7 +64,7 @@
             // 
             // LoadNetButton
             // 
-            this.LoadNetButton.Location = new System.Drawing.Point(457, 12);
+            this.LoadNetButton.Location = new System.Drawing.Point(470, 12);
             this.LoadNetButton.Name = "LoadNetButton";
             this.LoadNetButton.Size = new System.Drawing.Size(149, 34);
             this.LoadNetButton.TabIndex = 3;
@@ -129,11 +132,32 @@
             this.ResetButton.UseVisualStyleBackColor = true;
             this.ResetButton.Click += new System.EventHandler(this.ResetButton_Click);
             // 
+            // PlayButton
+            // 
+            this.PlayButton.Location = new System.Drawing.Point(683, 52);
+            this.PlayButton.Name = "PlayButton";
+            this.PlayButton.Size = new System.Drawing.Size(112, 34);
+            this.PlayButton.TabIndex = 9;
+            this.PlayButton.Text = "Pause";
+            this.PlayButton.UseVisualStyleBackColor = true;
+            this.PlayButton.Click += new System.EventHandler(this.PlayButton_Click);
+            // 
+            // MutateNumberBox
+            // 
+            this.MutateNumberBox.DecimalPlaces = 1;
+            this.MutateNumberBox.Location = new System.Drawing.Point(625, 15);
+            this.MutateNumberBox.Name = "MutateNumberBox";
+            this.MutateNumberBox.Size = new System.Drawing.Size(180, 31);
+            this.MutateNumberBox.TabIndex = 10;
+            this.MutateNumberBox.ValueChanged += new System.EventHandler(this.MutateNumberBox_ValueChanged);
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(10F, 25F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1154, 450);
+            this.Controls.Add(this.MutateNumberBox);
+            this.Controls.Add(this.PlayButton);
             this.Controls.Add(this.ResetButton);
             this.Controls.Add(this.ClearCheckpointsButton);
             this.Controls.Add(this.ClearCourseButton);
@@ -151,6 +175,7 @@
             this.MouseDown += new System.Windows.Forms.MouseEventHandler(this.Form1_MouseDown);
             this.MouseMove += new System.Windows.Forms.MouseEventHandler(this.Form1_MouseMove);
             this.MouseUp += new System.Windows.Forms.MouseEventHandler(this.Form1_MouseUp);
+            ((System.ComponentModel.ISupportInitialize)(this.MutateNumberBox)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -166,6 +191,8 @@
         private System.Windows.Forms.Button ClearCourseButton;
         private System.Windows.Forms.Button ClearCheckpointsButton;
         private System.Windows.Forms.Button ResetButton;
+        private System.Windows.Forms.Button PlayButton;
+        private System.Windows.Forms.NumericUpDown MutateNumberBox;
     }
 }
 

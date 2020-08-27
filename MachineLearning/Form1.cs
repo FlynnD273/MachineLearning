@@ -16,13 +16,13 @@ namespace MachineLearning
     {
         private Level level;
         private List<Player> players;
-        private Timer mutateTimer;
+        private float mutateInterval = 10;
+        private int frame = 1;
         private Timer frameTimer;
-
-        private bool runOne = false;
 
         private bool drawing = false;
         private bool drawWalls = true;
+        private bool playing = true;
 
         private List<Tuple<bool, Line>> undoStack = new List<Tuple<bool, Line>>();
         private List<Tuple<bool, Line>> redoStack = new List<Tuple<bool, Line>>();
@@ -36,7 +36,7 @@ namespace MachineLearning
             level = new Level("Walls.txt", "Checkpoints.txt");
             players = new List<Player>();
 
-            for (int i = 0; i < 20; i++)
+            for (int i = 0; i < 100; i++)
             {
                 players.Add(new Player(250, 250));
             }
@@ -46,28 +46,39 @@ namespace MachineLearning
             frameTimer.Tick += Frame;
             frameTimer.Start();
 
-            mutateTimer = new Timer();
-            mutateTimer.Interval = 10000;
-            mutateTimer.Tick += Mutate;
-            mutateTimer.Start();
+            Application.Idle += (s, e) => Invalidate();
+
+            MutateNumberBox.Value = (decimal)mutateInterval;
         }
 
-        private void Mutate(object sender, EventArgs e)
+        private void MutateButton_Click(object sender, EventArgs e)
         {
-            if (!runOne)
+            Mutate();
+        }
+
+        private void Mutate ()
+        {
+            players.Sort((a, b) => a.Net.CompareTo(b.Net));
+            for (int i = 0; i < players.Count; i++)
             {
-                players.Sort((a, b) => a.Net.CompareTo(b.Net));
-                players[0].Reset();
-                players[0].Net.Fitness = 0;
-                for (int i = 1; i < players.Count; i++)
+                if (players[i].Active)
                 {
-                    //players[i] = new Player(250, 250);
-                    players[i].Reset();
-                    players[i].Net = players[0].Net.Copy();
-                    players[i].Net.Mutate(0.4, 0.5);
-                    players[i].Net.Fitness = 0;
+                    players[0].Net = players[i].Net.Copy();
+                    break;
                 }
             }
+            players[0].Reset();
+            double m = 1.1 - Math.Tanh(Math.Max(players[0].Net.Fitness / 800, 0));
+            players[0].Net.Fitness = 0;
+            for (int i = 1; i < players.Count; i++)
+            {
+                //players[i] = new Player(250, 250);
+                players[i].Reset();
+                players[i].Net = players[0].Net.Copy();
+                players[i].Net.Mutate(Math.Min(m, 0.8), m);
+                players[i].Net.Fitness = 0;
+            }
+            frame = 1;
         }
 
         private void Frame(object sender, EventArgs e)
@@ -77,34 +88,26 @@ namespace MachineLearning
                 player.Frame(level);
             }
 
-            if (!runOne)
+            bool allInactive = true;
+            foreach (Player player in players)
             {
-                players.Sort((a, b) => a.Net.CompareTo(b.Net));
-                players[0].Color = Color.Green;
-
-                bool allInactive = true;
-                foreach (Player player in players)
+                if (player.Active)
                 {
-                    if (player.Active)
-                    {
-                        allInactive = false;
-                        break;
-                    }
-                }
-
-                if (allInactive)
-                {
-                    mutateTimer.Stop();
-                    mutateTimer.Start();
-                    Mutate(null, null);
+                    allInactive = false;
+                    break;
                 }
             }
-            else if (!players[0].Active)
+
+            if (allInactive)
             {
-                players[0].Reset();
+                Mutate();
             }
 
-            Invalidate();
+            if (mutateInterval != 0 && frame % (mutateInterval * 100) == 0)
+            {
+                Mutate();
+            }
+            frame++;
         }
 
         protected override void OnPaint(PaintEventArgs e)
@@ -114,11 +117,23 @@ namespace MachineLearning
             e.Graphics.FillRectangle(new SolidBrush(Color.FromArgb(50, 255, 0, 0)), 225, 225, 50, 50);
 
             level.Paint(e.Graphics);
-            
+
+            players.Sort((a, b) => a.Net.CompareTo(b.Net));
             foreach (Player player in players)
             {
+                if (player.Active)
+                {
+                    players[0].Color = Color.Green;
+                    break;
+                }
+            }
+
+            for (int i = 1; i < players.Count; i++)
+            {
+                Player player = players[i];
                 player.Paint(e.Graphics);
             }
+            players[0].Paint(e.Graphics);
         }
 
         private void SaveTrackButton_Click(object sender, EventArgs e)
@@ -131,9 +146,7 @@ namespace MachineLearning
 
         private void NextGenButton_Click(object sender, EventArgs e)
         {
-            Mutate(null, null);
-            mutateTimer.Stop();
-            mutateTimer.Start();
+            Mutate();
         }
 
         private void SaveNetButton_Click(object sender, EventArgs e)
@@ -146,7 +159,8 @@ namespace MachineLearning
                 players.Sort((a, b) => a.Net.CompareTo(b.Net));
                 players[0].Net.Save(sfd.FileName);
             }
-            frameTimer.Start();
+            if (playing)
+                frameTimer.Start();
         }
 
         private void LoadNetButton_Click(object sender, EventArgs e)
@@ -156,11 +170,16 @@ namespace MachineLearning
 
             if (ofd.ShowDialog() == DialogResult.OK)
             {
-                players = new List<Player>();
-                players.Add(new Player(250, 250));
+                //players = new List<Player>();
+                //players.Add(new Player(250, 250));
+                //players[0].Net.Load(ofd.FileName);
+                //mutateTimer.Stop();
+                //runOne = true;
                 players[0].Net.Load(ofd.FileName);
-                mutateTimer.Stop();
-                runOne = true;
+                for (int i = 1; i < players.Count; i++)
+                {
+                    players[i].Net = players[0].Net.Copy();
+                }
             }
         }
 
@@ -264,6 +283,26 @@ namespace MachineLearning
             {
                 player.Reset();
             }
+        }
+
+        private void PlayButton_Click(object sender, EventArgs e)
+        {
+            playing = !playing;
+            if (playing)
+            {
+                frameTimer.Start();
+                PlayButton.Text = "Pause";
+            }
+            else
+            {
+                frameTimer.Stop();
+                PlayButton.Text = "Play";
+            }
+        }
+
+        private void MutateNumberBox_ValueChanged(object sender, EventArgs e)
+        {
+            mutateInterval = (float)MutateNumberBox.Value;
         }
     }
 }

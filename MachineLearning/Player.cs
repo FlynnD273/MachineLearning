@@ -22,15 +22,16 @@ namespace MachineLearning
 
         private double[] sensors;
         private int sensorLength = 300;
-        private int checkpoint = 0;
+        private List<int> checkpoints;
 
         public Player (int x, int y)
         {
+            checkpoints = new List<int>();
             Loc = new Point(x, y);
             Rot = 0;
             ForwardVel = 0;
             TurnVel = 0;
-            sensors = new double[5];
+            sensors = new double[8];
             Net = new NeuralNet(new int[] { sensors.Length, 16, 16, 4 });
             startLoc = Loc;
             PrevLoc = Loc;
@@ -40,10 +41,10 @@ namespace MachineLearning
         {
             if (Active)
             {
-                for (int i = 0; i < sensors.Length; i++)
-                {
-                    g.DrawLine(new Pen(Brushes.Red, 10), Loc, ProjectPolar(Loc, Rot - 90 + i * 180 / (sensors.Length - 1), sensors[i] * sensorLength));
-                }
+                //for (int i = 0; i < sensors.Length; i++)
+                //{
+                //    g.DrawLine(new Pen(Brushes.Red, 2), Loc, ProjectPolar(Loc, Rot - 90 + i * 180 / (sensors.Length - 1), sensors[i] * sensorLength));
+                //}
 
                 g.TranslateTransform(Loc.X, Loc.Y);
                 g.RotateTransform((float)Rot);
@@ -62,7 +63,8 @@ namespace MachineLearning
                 Point prevLoc = Loc;
                 Input(Net.Output[0] > 0.5, Net.Output[1] > 0.5, Net.Output[2] > 0.5, Net.Output[3] > 0.5);
                 UpdateLoc();
-                Net.Fitness += ForwardVel / 10;
+                Net.Fitness += ForwardVel / 20;
+                //Net.Fitness += ForwardVel / 10 - 2;
 
                 if (CheckCollisions(level.Walls).Item1 || Math.Round(ForwardVel, 1) == 0)
                 {
@@ -70,16 +72,16 @@ namespace MachineLearning
                 }
                 var checkpointCollision = CheckCollisions(level.Checkpoints);
                 //Color = checkpoint ? Color.ForestGreen : Color.Coral;
-                Color = Color.Aquamarine;
+                Color = Color.DarkBlue;
 
-                if (checkpointCollision.Item1 && checkpointCollision.Item2 == checkpoint)
+                if (checkpointCollision.Item1 && !checkpoints.Contains(checkpointCollision.Item2))
                 {
-                    checkpoint++;
-                    if (checkpoint == level.Checkpoints.Count)
+                    if (checkpoints.Count == level.Checkpoints.Count)
                     {
-                        checkpoint = 0;
+                        checkpoints.Clear();
                     }
-                    Net.Fitness += 100;
+                    checkpoints.Add(checkpointCollision.Item2);
+                    Net.Fitness += 1500 / level.Checkpoints.Count;
                 }
             }
         }
